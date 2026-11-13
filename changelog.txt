@@ -1,0 +1,91 @@
+CHANGELOG - Locadora de Filmes
+Trabalho 03 - POO2 - UFPI
+
+Grupo: Allana Camily de Sousa Martins, Gabriel dos Santos Silva,
+Janiele de Jesus Barbosa
+
+
+Versão 3.0.0 - Parte 1: banco de dados em contêiner Docker (entrega parcial 1, 13/11/2026)
+
+- Os filmes deixam de ser salvos no filmes.json e passam a ser
+  armazenados em um banco PostgreSQL 16.
+- O banco executa em um contêiner Docker, definido no arquivo
+  docker-compose.yml (imagem postgres:16-alpine, volume nomeado
+  locadora_dados para os dados não se perderem, healthcheck e porta
+  configurável).
+- Criado db/init.sql: cria a tabela filmes (com restrições de validação,
+  incluindo a coerência entre disponivel, cliente e dias) e insere os 4
+  filmes de exemplo na primeira inicialização do contêiner.
+- Criados .env.example (configuração do banco) e requirements.txt
+  (PySide6 e psycopg).
+- Criado repositorio.py com a classe RepositorioFilmes, a única que conhece
+  SQL: conectar, fechar, listar, inserir, atualizar_aluguel, remover e
+  desfazer. A configuração da conexão vem de variáveis de ambiente ou do .env.
+- A classe Filme ganhou o atributo id (chave primária do banco). O método
+  para_dicionario e o de_dicionario passam a incluir o id.
+- tarefas.py: a classe GerenciadorArquivos foi substituída por
+  GerenciadorBanco. Continua sendo uma QThread com fila e Signal, mas agora
+  executa as operações carregar, inserir, atualizar e remover no banco. A
+  conexão é criada dentro da própria thread. Em caso de erro, é feito
+  rollback e a conexão é refeita no próximo pedido.
+- janela_principal.py: passa a usar GerenciadorBanco. Depois de inserir,
+  alugar, devolver ou remover, a lista é recarregada do banco, que é a
+  fonte da verdade. O filme selecionado agora é identificado pelo id (e não
+  mais pelo texto da linha), o que evita confusão entre filmes repetidos.
+- Se o banco estiver fora do ar, o sistema mostra uma mensagem orientando a
+  executar "docker compose up -d". Adicionado o item de menu
+  "Arquivo > Recarregar do banco".
+- A busca por título passou a reaproveitar o método mostrar_filmes, e a
+  lista continua filtrada depois de uma atualização.
+- Testado com PostgreSQL 16: carregar, inserir, alugar, devolver, remover,
+  busca, violação de restrição do banco e recuperação após o erro.
+
+Justificativa do armazenamento: os filmes e seus aluguéis são dados
+estruturados, que sofrem alterações frequentes e precisam de integridade;
+por isso foram para um banco relacional. Configurações de conexão ficam em
+arquivo (.env), pois são texto simples, mudam por ambiente e não devem ir
+para o repositório.
+
+Próximos passos (parcial 2): API em FastAPI entre a aplicação e o banco,
+comunicação via rede e demais ajustes.
+
+
+Versão 2.1.0 - Parte 2: threads (entrega parcial 2, 16/10/2026)
+
+- Criado o arquivo tarefas.py com a classe GerenciadorArquivos, que
+  usa QThread para ler e gravar o filmes.json em uma thread separada.
+- As operações de arquivo (carregar, salvar e encerrar) entram em uma
+  fila (Queue) e são executadas uma de cada vez, na ordem em que foram
+  pedidas.
+- A thread avisa a janela principal quando termina cada operação,
+  usando um Signal.
+- Os métodos carregar_filmes e salvar_filmes da janela principal não
+  leem nem gravam mais o arquivo diretamente: eles só enviam o pedido
+  para a thread.
+- A tela não trava mais durante a leitura e a gravação do arquivo.
+- Adicionada a variável carregamento_concluido, que impede alugar,
+  devolver, adicionar ou remover filmes antes de o carregamento
+  inicial terminar.
+- Ao fechar o programa, a janela manda a thread encerrar e espera ela
+  terminar, para não perder gravações pendentes.
+- Removido o import json da janela principal, pois o arquivo agora é
+  tratado só pela thread.
+
+
+Versão 2.0.0 - Parte 1: arquivos (entrega parcial 1, 09/10/2026)
+
+- Os filmes agora são salvos no arquivo filmes.json.
+- Ao abrir o programa, os filmes são lidos do arquivo.
+- Ao adicionar, alugar, devolver ou remover um filme, o arquivo é
+  atualizado.
+- Criados os métodos para_dicionario e de_dicionario na classe Filme.
+- Se o arquivo não existe, ele é criado com 4 filmes de exemplo.
+- Os dados não se perdem mais ao fechar o programa.
+
+
+Versão 1.0.0 - Trabalho 1
+
+- Interface gráfica com PySide6.
+- Cadastrar, buscar, alugar, devolver e remover filmes.
+- Menus, janela "Sobre" e mensagens de confirmação.
+- Os dados ficavam só na memória.
