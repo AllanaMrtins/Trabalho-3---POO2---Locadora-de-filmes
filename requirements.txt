@@ -1,2 +1,0 @@
-PySide6
-psycopg[binary]>=3.1
